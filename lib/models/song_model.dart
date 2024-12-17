@@ -1,33 +1,44 @@
+import 'package:audiotags/audiotags.dart';
+
 class Song {
-  final String title;
-  final String artist;
-  final String path; // Path to the MP3 file
-  final List<String> tags;
+  final String path;
+  final Tag? tag;
 
   Song({
-    required this.title,
-    required this.artist,
     required this.path,
-    required this.tags,
+    this.tag,
   });
 
-  // Convert a Song object into a Map object for database storage
-  Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'artist': artist,
-      'path': path,
-      'tags': tags.join(','), // Convert list of tags to a comma-separated string
-    };
+  /// Factory constructor to create a Song object from a file path and its metadata tag.
+  static Future<Song> fromPath(String path) async {
+    // try {
+    // Fetch the tag using AudioTags
+    final Tag? tag = await AudioTags.read(path);
+
+    // if (tag != null) {
+    return Song(path: path, tag: tag);
+    //   } else {
+    //     print("No metadata found for file: $path");
+    //     return Song(
+    //       path: path,
+    //     ); // Return null if the tag is not available
+    //   }
+    // } catch (e) {
+    //   print("Error reading tags for file $path: $e");
+    //   return Song(
+    //     path: path,
+    //   );
+    // }
   }
 
-  // Convert a Map object into a Song object
-  factory Song.fromMap(Map<String, dynamic> map) {
-    return Song(
-      title: map['title'],
-      artist: map['artist'],
-      path: map['path'],
-      tags: (map['tags'] as String).split(','), // Split the comma-separated string back into a list
-    );
+  String get title => tag?.title ?? path.split('\\').last;
+  String get artist => tag?.trackArtist ?? tag?.albumArtist ?? "Unknown Artist";
+
+  static Future<List<Song>> fromSongPaths(List<String> paths) async {
+    List<Song> songs = [];
+    for (String e in paths) {
+      songs.add(await fromPath(e));
+    }
+    return songs;
   }
 }
